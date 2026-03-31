@@ -15,96 +15,71 @@ class SawService
 
         $matrix = [];
 
-        // build decision matrix (value of each criteria for each destination)
+        // build decision matrix (nilai raw tiap criteria per destination)
         foreach ($destinations as $destination) {
             foreach ($criterias as $criteria) {
-
                 $dc = $destination->destinationCriterias
                     ->firstWhere('criteria_id', $criteria->id);
-
-                // default value is 5 (netral) if not set
                 $matrix[$destination->id][$criteria->id] = $dc->value ?? 5;
             }
         }
 
         // normalization (benefit: value / max, cost: min / value)
         $normalized = [];
-
         foreach ($criterias as $criteria) {
-
             $values = collect($matrix)->pluck($criteria->id);
-
             $max = $values->max();
             $min = $values->min();
 
             foreach ($matrix as $destId => $vals) {
-
                 $value = $vals[$criteria->id];
-
                 if ($criteria->type === 'benefit') {
-                    $normalized[$destId][$criteria->id] = $max
-                        ? $value / $max
-                        : 0;
+                    $normalized[$destId][$criteria->id] = $max ? $value / $max : 0;
                 } else {
-                    $normalized[$destId][$criteria->id] = ($value != 0)
-                        ? $min / $value
-                        : 0;
+                    $normalized[$destId][$criteria->id] = ($value != 0) ? $min / $value : 0;
                 }
             }
         }
 
-        // normalized weights
+        // normalize weights
         $totalWeight = $criterias->sum('weight');
-
         $normalizedWeights = [];
-
         foreach ($criterias as $criteria) {
-            $normalizedWeights[$criteria->id] = $totalWeight
-                ? $criteria->weight / $totalWeight
-                : 0;
+            $normalizedWeights[$criteria->id] = $totalWeight ? $criteria->weight / $totalWeight : 0;
         }
 
-        // calculate scores (sum of normalized value * normalized weight)
+        // calculate scores per criteria & total score
         $scores = [];
-
         foreach ($normalized as $destId => $vals) {
-
-            $total = 0;
             $details = [];
-
             foreach ($criterias as $criteria) {
                 $weight = $normalizedWeights[$criteria->id];
-
-                $total += ($vals[$criteria->id] ?? 0) * $weight;
-
                 $details[$criteria->name] = [
                     'raw' => $matrix[$destId][$criteria->id] ?? 5,
-                    'normalized' => $vals[$criteria->id],
-                    'weight' => $weight,
-                    'score' => round($total, 5),
+                    'normalized' => round($vals[$criteria->id], 5),
+                    'weight' => round($weight, 5),
+                    'score' => round(($vals[$criteria->id] * $weight), 5), // per criteria
                 ];
             }
 
-            // $scores[$destId] = $total;
-
+            $totalScore = collect($details)->sum(fn($d) => $d['score']);
             $scores[$destId] = [
-                'total_score' => $total,
+                'total_score' => round($totalScore, 5),
                 'details' => $details,
             ];
         }
 
-        // sort scores in descending order
-        // arsort($scores);
+        // urutkan descending by total score
+        $scores = collect($scores)->sortByDesc('total_score')->values()->all();
 
-        $scores = collect($scores)->sortByDesc('total_score')->toArray();
-
-        foreach ($scores as $destId => $score) {
+        // simpan ke database dengan rank
+        foreach ($scores as $index => $score) {
             Rankings::updateOrCreate(
-                ['destination_id' => $destId],
+                ['destination_id' => $destinations[$index]->id],
                 [
-                    'rank' => array_search($destId, array_keys($scores)) + 1,
                     'score' => $score['total_score'],
                     'details' => $score['details'],
+                    'rank' => $index + 1,
                 ]
             );
         }

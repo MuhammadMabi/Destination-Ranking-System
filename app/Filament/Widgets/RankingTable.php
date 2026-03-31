@@ -57,28 +57,24 @@ class RankingTable extends TableWidget
                 ->sortable()
                 ->searchable(isIndividual: true)
                 ->color(function ($record) use ($c) {
-                    $score = $record->details[$c]['score'] ?? 0;
-                    $weight = $record->details[$c]['weight'] ?? 1;
+                    $all = Rankings::all();
 
-                    // indikator dinamis berdasarkan persentase dari bobot max (relatif)
-                    $relative = $score / $weight; // semakin dekat ke bobot max = lebih hijau
-        
-                    return match (true) {
-                        $relative >= 1 => 'success',       // Excellent
-                        $relative >= 0.6 => 'warning',     // Average
-                        default => 'danger',               // Poor
-                    };
-                })
-                ->badge(function ($record) use ($c) {
-                    $score = $record->details[$c]['score'] ?? 0;
-                    $weight = $record->details[$c]['weight'] ?? 1;
+                    $values = $all->map(fn($r) => $r->details[$c]['score'] ?? 0);
 
-                    $relative = $score / $weight;
+                    $max = $values->max();
+                    $min = $values->min();
+
+                    $current = $record->details[$c]['score'] ?? 0;
+
+                    // normalisasi relatif antar destinasi
+                    $relative = ($max - $min) > 0
+                        ? ($current - $min) / ($max - $min)
+                        : 0;
 
                     return match (true) {
-                        $relative >= 1 => 'Excellent',
-                        $relative >= 0.6 => 'Average',
-                        default => 'Poor',
+                        $relative >= 0.7 => 'success',
+                        $relative >= 0.4 => 'warning',
+                        default => 'danger',
                     };
                 })
                 ->getStateUsing(fn($record) => $record->details[$c]['score'] ?? 0)
