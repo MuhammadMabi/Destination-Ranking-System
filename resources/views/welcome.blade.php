@@ -14,6 +14,16 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600&family=Syne:wght@400;500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('landingpage/templatemo-nexaverse.css') }}">
+
+
+    <script>
+        window.gtranslateSettings = {
+            "default_language": "en",
+            "languages": ["en", "id", "es", "fr", "de", "zh-CN", "ja", "ru", "ar", "pt"],
+            "wrapper_selector": ".gtranslate_wrapper"
+        }
+    </script>
+    <script src="https://cdn.gtranslate.net/widgets/latest/flags.js" defer></script>
 </head>
 
 <body>
@@ -36,11 +46,31 @@
     <!-- Main Container -->
     <div class="container">
         <div class="content-section active" id="introduction">
-
             <!-- Hero Banner -->
             <div class="logo-container">
                 <img src="{{ asset('Logo-MaybeTech.png') }}" alt="destination-ranking-logo" class="img-responsive"
                     style="height: 60px;">
+                <br>
+            </div>
+            {{-- <div class="d-flex justify-content-center align-items-center mb-3 text-center">
+                <div class="gtranslate_wrapper"></div>
+                <marquee behavior="scroll" direction="left">
+                    Welcome to the Destination Ranking System!
+                    <div class="time"></div>
+                </marquee>
+            </div> --}}
+            <div
+                style="display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:10px;">
+
+                <!-- GTranslate di atas -->
+                <div class="gtranslate_wrapper"></div>
+
+                <span class="time"></span>
+                <!-- Marquee di bawah -->
+                <marquee behavior="scroll" direction="left" style="width:100%;">
+                    Welcome to the Destination Ranking System!
+                </marquee>
+
             </div>
             <div class="intro-hero">
                 <div class="intro-hero-content">
@@ -93,6 +123,17 @@
         </footer>
     </div>
     <script src="{{ asset('landingpage/templatemo-nexa-scripts.js') }}"></script>
+
+    <script>
+        time = document.querySelector('.time');
+        setInterval(() => {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            time.textContent = `${hours}:${minutes}:${seconds}`;
+        }, 1000);
+    </script>
 </body>
 
 </html>

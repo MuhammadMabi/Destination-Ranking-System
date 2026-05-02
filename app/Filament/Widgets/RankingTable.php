@@ -8,8 +8,13 @@ use App\Filament\Resources\Destinations\DestinationResource;
 use App\Models\Rankings;
 use App\Services\SawService;
 use BcMath\Number;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\ImageEntry;
 use Filament\QueryBuilder\Constraints\NumberConstraint;
 use Filament\QueryBuilder\Constraints\TextConstraint;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\QueryBuilder;
@@ -18,7 +23,8 @@ use Filament\Widgets\TableWidget;
 
 class RankingTable extends TableWidget
 {
-    protected static ?string $heading = 'Destination Rankings';
+    // protected static ?string $heading = 'Destination Rankings';
+    protected static ?string $heading = 'Sistem Penunjang Keputusan Pemilihan Destinasi Tebaik di Nusantara';
     protected int|string|array $columnSpan = 'full';
 
     public function mount(): void
@@ -96,6 +102,10 @@ class RankingTable extends TableWidget
             ->query(Rankings::with(['destination', 'destination.location']))
             ->columns(array_merge([
                 TextColumn::make('rank')->label('Rank')->sortable(),
+                ImageColumn::make('destination.image')
+                    ->label('Image')
+                    ->square()
+                    ->disk('local'),
                 TextColumn::make('destination.name')->label('Destination')->sortable()->searchable(),
                 TextColumn::make('destination.location.name')->label('Location')->sortable()->searchable(),
                 TextColumn::make('score')->label('Total Score')->sortable()->searchable(isIndividual: true)
@@ -115,6 +125,42 @@ class RankingTable extends TableWidget
                     ->constraints($dynamicConstraints)
             ], layout: FiltersLayout::AboveContentCollapsible)
             ->searchable(['destination.name', 'destination.location.name'])
-            ->defaultSort('score', 'desc');
+            ->defaultSort('score', 'desc')
+            ->recordAction('detail')
+            ->recordActions([
+                Action::make('detail')
+                    ->label('Detail')
+                    ->schema([
+                        // ImageColumn::make('destination.image')
+                        //     ->label('Image')
+                        //     ->square()
+                        //     ->disk('local'),
+                        Textarea::make('summary')
+                            ->label('Ringkasan Perhitungan')
+                            ->rows(10)
+                            ->disabled()
+                            ->formatStateUsing(function ($record) {
+
+                                $text = "Destinasi {$record->destination->name} memiliki total skor {$record->score}.\n\n";
+
+                                foreach ($record->details as $criteria => $d) {
+                                    $text .= "- {$criteria}: nilai {$d['raw']}, ";
+                                    $text .= "dinormalisasi menjadi {$d['normalized']}, ";
+                                    $text .= "dengan bobot {$d['weight']}, ";
+                                    $text .= "sehingga menghasilkan kontribusi skor {$d['score']}.\n";
+                                }
+
+                                // cari kriteria paling dominan
+                                $best = collect($record->details)->sortByDesc('score')->keys()->first();
+
+                                $text .= "\nKriteria yang paling berpengaruh adalah {$best}.";
+
+                                return $text;
+                            }),
+                    ])
+                    ->modalCancelAction(fn(Action $action) => $action->label('Close'))
+                    ->modalSubmitAction(false)
+                    ->icon('heroicon-o-eye'),
+            ]);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Destinations\Schemas;
 
 use App\Models\Criteria;
 use Faker\Provider\Image;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
@@ -40,6 +41,9 @@ class DestinationForm
                         Textarea::make('description')
                             ->required()
                             ->maxLength(255),
+
+                        DateTimePicker::make('created_at')
+                            ->label('Created At'),
 
                         FileUpload::make('image')
                             ->image()

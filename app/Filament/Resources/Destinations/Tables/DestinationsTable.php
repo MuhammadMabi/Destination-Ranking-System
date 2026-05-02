@@ -16,6 +16,10 @@ class DestinationsTable
     {
         return $table
             ->columns([
+                ImageColumn::make('image')
+                    ->label('Image')
+                    ->square()
+                    ->disk('local'),
                 TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
